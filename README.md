@@ -1,4 +1,4 @@
-[English version](README.en.md)
+نسخهٔ انگلیسی: [English version](README.en.md)
 
 # Grafana MCP
 
@@ -23,7 +23,7 @@ VictoriaMetrics وصل نمی‌شود.
 
 - Node.js 20 یا جدیدتر
 - یک حساب Grafana با دسترسی خواندن به داشبوردها و datasourceهای لازم
-- URL، نام کاربری و گذرواژهٔ Grafana در محیط اجرای MCP
+- نشانی URL، نام کاربری و گذرواژهٔ Grafana در محیط اجرای MCP
 
 ## نصب
 
@@ -62,14 +62,14 @@ GRAFANA_USERNAME = "your-username"
 GRAFANA_PASSWORD = "your-password"
 ```
 
-Codex را دوباره اجرا کنید، سپس با `codex mcp list` فعال‌بودن سرور را بررسی
-کنید. نمونهٔ بدون اطلاعات حساس در [mcp.json.example](mcp.json.example) است.
+پس از اجرای دوبارهٔ Codex، با `codex mcp list` فعال‌بودن سرور را بررسی کنید.
+نمونهٔ بدون اطلاعات حساس در [mcp.json.example](mcp.json.example) است.
 
 ## نصب در Claude Code
 
-Claude Code می‌تواند این سرور را در scope کاربر اضافه کند. مقادیر نمونه را
+برای افزودن سرور در Claude Code از scope کاربر استفاده کنید. مقادیر نمونه را
 با اطلاعات واقعیِ محیط خود جایگزین کنید؛ این دستور را با رمز واقعی در تاریخچهٔ
-shell مشترک اجرا نکنید.
+مشترک shell اجرا نکنید.
 
 ```sh
 claude mcp add grafana --scope user \
