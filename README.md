@@ -85,26 +85,6 @@ claude mcp add grafana --scope user \
 نادیده می‌گیرد. Claude Code در فایل پروژه از `${VARIABLE}` برای دریافت مقادیر
 از محیط پشتیبانی می‌کند.
 
-## احراز هویت و امنیت
-
-سرور با `POST /login` وارد Grafana می‌شود. cookieهای HttpOnly جلسه فقط در
-حافظه نگه‌داری می‌شوند؛ فایل cookie jar، Chrome DevTools و endpoint
-`/api/user/auth-tokens/rotate` استفاده نمی‌شوند.
-
-مقدارهای `Set-Cookie` در همهٔ پاسخ‌ها دریافت می‌شوند. اگر درخواست `401` بگیرد،
-سرور فقط یک‌بار دوباره login می‌کند و همان درخواست را تکرار می‌کند. درخواست‌های
-هم‌زمان از یک login مشترک استفاده می‌کنند.
-
-این موارد را هرگز commit نکنید:
-
-- URL داخلی Grafana، نام کاربری یا گذرواژه
-- cookieهای `grafana_session` و `grafana_session_expiry`
-- خروجی query، log، screenshot یا فایل تنظیمات محلی
-
-فایل `.gitignore` برای جلوگیری از commit فایل‌های پیکربندی محلی، credential و
-session در نظر گرفته شده است؛ بااین‌حال پیش از push حتماً تغییرات stageشده را
-مرور کنید.
-
 ## راهنمای query
 
 برای متریک‌ها، PromQL و افزونه‌های VictoriaMetrics را در مستندات MetricsQL

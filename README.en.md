@@ -80,20 +80,6 @@ Verify it with `claude mcp list`. A project-level `.mcp.json` can reference
 `${VARIABLE}` values from the environment, but it must not contain secrets and
 is intentionally ignored by this repository.
 
-## Authentication and security
-
-The server signs in using `POST /login`. HttpOnly session cookies live only in
-memory: there is no cookie jar, Chrome DevTools access, or call to
-`/api/user/auth-tokens/rotate`.
-
-It adopts `Set-Cookie` values from every response. On a `401`, it signs in once
-and retries the failed request once; concurrent failures share that login.
-
-Never commit an internal Grafana URL, credentials, `grafana_session` cookies,
-query output, logs, screenshots, or local configuration. `.gitignore` excludes
-common local configuration and credential files, but always inspect staged
-changes before pushing.
-
 ## Query references
 
 Use [MetricsQL][metricsql] for VictoriaMetrics-specific metric syntax and
