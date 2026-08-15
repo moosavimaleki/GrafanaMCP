@@ -1,0 +1,14 @@
+{
+  "mcpServers": {
+    "grafana": {
+      "command": "node",
+      "args": ["/absolute/path/to/GrafanaMCP/src/index.js"],
+      "env": {
+        "GRAFANA_BASE_URL": "<grafana-base-url>",
+        "GRAFANA_ORG_ID": "<grafana-org-id>",
+        "GRAFANA_USERNAME": "<grafana-username>",
+        "GRAFANA_PASSWORD": "<grafana-password>"
+      }
+    }
+  }
+}
