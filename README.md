@@ -1,6 +1,8 @@
 نسخهٔ انگلیسی: [English version](README.en.md)
 
-# Grafana MCP
+<div dir="rtl">
+
+# گرافانا MCP
 
 سرور MCP محلی و فقط‌خواندنی برای بررسی داشبوردهای Grafana، متریک‌های
 Prometheus/VictoriaMetrics و لاگ‌های VictoriaLogs است. این سرور از طریق
@@ -21,9 +23,9 @@ VictoriaMetrics وصل نمی‌شود.
 
 ## پیش‌نیازها
 
-- Node.js 20 یا جدیدتر
-- یک حساب Grafana با دسترسی خواندن به داشبوردها و datasourceهای لازم
-- نشانی URL، نام کاربری و گذرواژهٔ Grafana در محیط اجرای MCP
+- نصب‌بودن Node.js نسخهٔ ۲۰ یا جدیدتر
+- داشتن حساب Grafana با دسترسی خواندن به داشبوردها و datasourceهای لازم
+- تنظیم نشانی URL، نام کاربری و گذرواژهٔ Grafana در محیط اجرای MCP
 
 ## نصب
 
@@ -96,3 +98,5 @@ claude mcp add grafana --scope user \
 
 [metricsql]: https://docs.victoriametrics.com/victoriametrics/metricsql/
 [logsql]: https://docs.victoriametrics.com/victorialogs/logsql/
+
+</div>
