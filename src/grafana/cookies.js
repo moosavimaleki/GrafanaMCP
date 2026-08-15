@@ -44,3 +44,8 @@ export function mergeSessionCookie(current, headers, replace = false) {
   if (!pairs.has('grafana_session')) return undefined;
   return [...pairs].map(([name, value]) => `${name}=${value}`).join('; ');
 }
+
+export function sessionExpirySeconds(cookie) {
+  const expiry = Number(parseCookieHeader(cookie).get('grafana_session_expiry'));
+  return Number.isSafeInteger(expiry) ? expiry : undefined;
+}

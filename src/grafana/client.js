@@ -1,8 +1,10 @@
-import {mergeSessionCookie} from './cookies.js';
+import {mergeSessionCookie, sessionExpirySeconds} from './cookies.js';
 import {GrafanaError} from './error.js';
 
 const sessions = new Map();
 const pendingLogins = new Map();
+const pendingRotations = new Map();
+const rotateWindowSeconds = 5 * 60;
 
 function normalizeBaseUrl(baseUrl) {
   const value = (baseUrl || process.env.GRAFANA_BASE_URL || '').replace(/\/$/, '');
@@ -74,6 +76,36 @@ export class GrafanaClient {
     return login;
   }
 
+  sessionExpiresSoon() {
+    const expiry = sessionExpirySeconds(sessions.get(this.sessionKey));
+    return expiry !== undefined
+      && expiry - Math.floor(Date.now() / 1000) <= rotateWindowSeconds;
+  }
+
+  async performRotation() {
+    const attemptedCookie = sessions.get(this.sessionKey);
+    const response = await this.requestOnce('/api/user/auth-tokens/rotate', {method: 'POST'});
+    await response.arrayBuffer();
+    this.updateSession(response.headers);
+
+    if (response.status !== 401) return;
+    if (sessions.get(this.sessionKey) === attemptedCookie) sessions.delete(this.sessionKey);
+    if (!sessions.has(this.sessionKey)) await this.login();
+  }
+
+  async rotate() {
+    const existing = pendingRotations.get(this.sessionKey);
+    if (existing) return existing;
+    const rotation = this.performRotation().finally(() => pendingRotations.delete(this.sessionKey));
+    pendingRotations.set(this.sessionKey, rotation);
+    return rotation;
+  }
+
+  async ensureSession() {
+    if (!sessions.has(this.sessionKey)) await this.login();
+    else if (this.sessionExpiresSoon()) await this.rotate();
+  }
+
   requestOnce(pathname, options = {}) {
     const {method = 'GET', body, rawBody, headers = {}} = options;
     const cookie = sessions.get(this.sessionKey);
@@ -90,6 +122,7 @@ export class GrafanaClient {
   }
 
   async request(pathname, options = {}) {
+    await this.ensureSession();
     const attemptedCookie = sessions.get(this.sessionKey);
     let response = await this.requestOnce(pathname, options);
     this.updateSession(response.headers);

@@ -15,7 +15,7 @@ export function makeServer() {
       instructions: [
         'Use these tools only for read-only Grafana discovery and monitoring.',
         'Authentication uses an in-memory username/password session.',
-        'A 401 triggers one login and one retry; Chrome cookies and token rotation are not used.',
+        'Sessions rotate before expiry; a 401 triggers one login and one retry.',
       ].join(' '),
     },
   );
