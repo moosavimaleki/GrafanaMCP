@@ -21,6 +21,18 @@ VictoriaMetrics وصل نمی‌شود.
 تمام ابزارها فقط‌خواندنی هستند؛ این پروژه داشبورد، alert، datasource یا
 دادهٔ مانیتورینگ را تغییر نمی‌دهد.
 
+## ابزارهای query مستقل
+
+برای VictoriaMetrics، ابزار `query_victoriametrics` یک عبارت MetricsQL را
+اجرا می‌کند. ابزارهای `list_victoriametrics_namespaces`،
+`list_victoriametrics_metric_names`، `list_victoriametrics_label_names` و
+`list_victoriametrics_label_values` نیز برای کشف داده در دسترس‌اند.
+
+برای VictoriaLogs، ابزار `query_victorialogs` عبارت LogSQL را اجرا می‌کند و
+ابزارهای `list_victorialogs_fields` و `list_victorialogs_field_values` میدان‌ها
+و مقدارهایشان را پیدا می‌کنند. برای هر دو نوع query، شناسهٔ datasource را از
+ابزار فهرست datasourceها دریافت کنید.
+
 ## پیش‌نیازها
 
 - نصب‌بودن Node.js نسخهٔ ۲۰ یا جدیدتر

@@ -13,6 +13,16 @@ import {
 
 const readOnly = {readOnlyHint: true, openWorldHint: false};
 const documentation = {metricsql: METRICSQL_DOC_URL};
+const queryInput = baseInput.extend({
+  datasource_uid: z.string().min(1),
+  expr: z.string().min(1),
+  from: z.string().optional(),
+  to: z.string().optional(),
+  instant: z.boolean().default(false),
+  legend_format: z.string().default(''),
+  max_data_points: z.coerce.number().int().min(1).max(5000).default(300),
+  interval_ms: z.coerce.number().int().min(1).optional(),
+});
 
 async function execute(args, item) {
   const payload = buildQueryPayload({
@@ -25,6 +35,31 @@ async function execute(args, item) {
   });
   const response = await runQuery(grafanaClient(args), payload);
   return {payload, response};
+}
+
+function metricQueryResult(args, payload, response) {
+  return result({
+    request: {
+      datasourceUid: args.datasource_uid,
+      expr: args.expr,
+      from: payload.from,
+      to: payload.to,
+      instant: args.instant,
+    },
+    results: summarizeQueryResult(response),
+    documentation,
+  });
+}
+
+async function queryMetricDatasource(args) {
+  const {payload, response} = await execute(args, {
+    refId: 'A',
+    expr: args.expr,
+    instant: args.instant,
+    range: !args.instant,
+    legendFormat: args.legend_format,
+  });
+  return metricQueryResult(args, payload, response);
 }
 
 export function registerMetricQueryTools(server) {
@@ -69,35 +104,14 @@ export function registerMetricQueryTools(server) {
   server.registerTool('query_prometheus', {
     title: 'Query Prometheus-compatible datasource',
     description: 'Run read-only PromQL or MetricsQL and return compact frame summaries.',
-    inputSchema: baseInput.extend({
-      datasource_uid: z.string().min(1),
-      expr: z.string().min(1),
-      from: z.string().optional(),
-      to: z.string().optional(),
-      instant: z.boolean().default(false),
-      legend_format: z.string().default(''),
-      max_data_points: z.coerce.number().int().min(1).max(5000).default(300),
-      interval_ms: z.coerce.number().int().min(1).optional(),
-    }),
+    inputSchema: queryInput,
     annotations: readOnly,
-  }, handle(async args => {
-    const {payload, response} = await execute(args, {
-      refId: 'A',
-      expr: args.expr,
-      instant: args.instant,
-      range: !args.instant,
-      legendFormat: args.legend_format,
-    });
-    return result({
-      request: {
-        datasourceUid: args.datasource_uid,
-        expr: args.expr,
-        from: payload.from,
-        to: payload.to,
-        instant: args.instant,
-      },
-      results: summarizeQueryResult(response),
-      documentation,
-    });
-  }));
+  }, handle(queryMetricDatasource));
+
+  server.registerTool('query_victoriametrics', {
+    title: 'Query VictoriaMetrics',
+    description: 'Run read-only MetricsQL through Grafana’s VictoriaMetrics datasource.',
+    inputSchema: queryInput,
+    annotations: readOnly,
+  }, handle(queryMetricDatasource));
 }

@@ -7,6 +7,7 @@ import {registerMetaTools} from './mcp/meta-tools.js';
 import {registerMetricDiscoveryTools} from './mcp/metric-discovery-tools.js';
 import {registerMetricQueryTools} from './mcp/metric-query-tools.js';
 import {registerMonitorTool} from './mcp/monitor-tool.js';
+import {registerVictoriaMetricsTools} from './mcp/victoriametrics-tools.js';
 
 export function makeServer() {
   const server = new McpServer(
@@ -23,6 +24,7 @@ export function makeServer() {
   registerDashboardTools(server);
   registerMetricDiscoveryTools(server);
   registerMetricQueryTools(server);
+  registerVictoriaMetricsTools(server);
   registerLogTools(server);
   registerMonitorTool(server);
   registerMetaTools(server);

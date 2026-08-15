@@ -18,6 +18,16 @@ through Grafana; it never connects to Prometheus or VictoriaMetrics directly.
 Every tool is read-only. The server never changes dashboards, alerts,
 datasources, or monitoring data.
 
+## Dedicated query tools
+
+For VictoriaMetrics, `query_victoriametrics` runs MetricsQL, while
+`list_victoriametrics_namespaces`, `list_victoriametrics_metric_names`,
+`list_victoriametrics_label_names`, and `list_victoriametrics_label_values`
+provide discovery. For VictoriaLogs, `query_victorialogs` runs LogSQL, and
+`list_victorialogs_fields` plus `list_victorialogs_field_values` discover
+fields and field values. Obtain the required datasource UID from the datasource
+listing tool.
+
 ## Requirements and installation
 
 Use Node.js 20 or newer and a Grafana account with read access to the required
