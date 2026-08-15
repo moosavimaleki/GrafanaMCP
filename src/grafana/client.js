@@ -1,5 +1,6 @@
 import {mergeSessionCookie, sessionExpirySeconds} from './cookies.js';
 import {GrafanaError} from './error.js';
+import {failureDetail, responsePayload} from './response.js';
 
 const sessions = new Map();
 const pendingLogins = new Map();
@@ -14,15 +15,6 @@ function normalizeBaseUrl(baseUrl) {
     throw new GrafanaError('Grafana base_url must use HTTP or HTTPS.');
   }
   return value;
-}
-
-async function responsePayload(response) {
-  const text = await response.text();
-  try {
-    return text ? JSON.parse(text) : {};
-  } catch {
-    return text;
-  }
 }
 
 export class GrafanaClient {
@@ -57,10 +49,10 @@ export class GrafanaClient {
     });
     const payload = await responsePayload(response);
     if (!response.ok) {
-      const detail = typeof payload === 'object' && payload?.message
-        ? `: ${payload.message}`
-        : '';
-      throw new GrafanaError(`Grafana login failed (${response.status})${detail}`, response.status);
+      throw new GrafanaError(
+        `Grafana login failed (${response.status})${failureDetail(payload)}`,
+        response.status,
+      );
     }
     this.updateSession(response.headers, true);
     if (!sessions.has(this.sessionKey)) {
@@ -143,10 +135,10 @@ export class GrafanaClient {
       );
     }
     if (!response.ok) {
-      const detail = typeof payload === 'object' && payload?.message
-        ? `: ${payload.message}`
-        : '';
-      throw new GrafanaError(`Grafana request failed (${response.status})${detail}`, response.status);
+      throw new GrafanaError(
+        `Grafana request failed (${response.status})${failureDetail(payload)}`,
+        response.status,
+      );
     }
     return payload;
   }
