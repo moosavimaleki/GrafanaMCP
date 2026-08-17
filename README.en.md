@@ -14,9 +14,16 @@ through Grafana; it never connects to Prometheus or VictoriaMetrics directly.
 - Read VictoriaLogs records and LogSQL aggregations
 - Read annotations and alert rules, and generate dashboard/panel deeplinks
 - Summarize each metric series with latest, minimum, maximum, and average
+- Return compact, column-oriented TOON to reduce agent token usage
 
 Every tool is read-only. The server never changes dashboards, alerts,
 datasources, or monitoring data.
+
+Tool calls return one text representation and do not duplicate the payload in
+`structuredContent`. Uniform TOON arrays declare column names once; for
+example, `series[2]{name,value}:` means two series with two columns. Instant
+queries return only name, labels, value, and time by default. Use
+`detail=stats` for full range statistics and `max_series` to bound output size.
 
 ## Dedicated query tools
 
@@ -93,8 +100,9 @@ is intentionally ignored by this repository.
 ## Query references
 
 Use [MetricsQL][metricsql] for VictoriaMetrics-specific metric syntax and
-[LogSQL][logsql] for VictoriaLogs queries. Relevant tool responses also include
-these links.
+[LogSQL][logsql] for VictoriaLogs queries. The `grafana_help` tool returns
+these references, suggested workflows, and output-format guidance on demand;
+ordinary query responses no longer repeat inputs or documentation links.
 
 [metricsql]: https://docs.victoriametrics.com/victoriametrics/metricsql/
 [logsql]: https://docs.victoriametrics.com/victorialogs/logsql/

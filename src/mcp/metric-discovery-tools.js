@@ -5,12 +5,10 @@ import {
   baseInput,
   grafanaClient,
   handle,
-  METRICSQL_DOC_URL,
   result,
 } from './common.js';
 
 const readOnly = {readOnlyHint: true, openWorldHint: false};
-const documentation = {metricsql: METRICSQL_DOC_URL};
 
 export function registerMetricDiscoveryTools(server) {
   server.registerTool('list_prometheus_label_values', {
@@ -37,12 +35,7 @@ export function registerMetricDiscoveryTools(server) {
         'match[]': args.match,
       },
     );
-    return result({
-      datasourceUid: args.datasource_uid,
-      label: args.label,
-      values: data.data ?? data,
-      documentation,
-    });
+    return result({values: data.data ?? data});
   }));
 
   server.registerTool('list_prometheus_metric_names', {
@@ -60,11 +53,7 @@ export function registerMetricDiscoveryTools(server) {
       'api/v1/label/__name__/values',
       {limit: args.limit},
     );
-    return result({
-      datasourceUid: args.datasource_uid,
-      metricNames: data.data ?? data,
-      documentation,
-    });
+    return result({metricNames: data.data ?? data});
   }));
 
   server.registerTool('list_prometheus_label_names', {
@@ -83,11 +72,7 @@ export function registerMetricDiscoveryTools(server) {
       'api/v1/labels',
       {limit: args.limit, 'match[]': args.match},
     );
-    return result({
-      datasourceUid: args.datasource_uid,
-      labels: data.data ?? data,
-      documentation,
-    });
+    return result({labels: data.data ?? data});
   }));
 
   server.registerTool('list_prometheus_metric_metadata', {
@@ -106,10 +91,6 @@ export function registerMetricDiscoveryTools(server) {
       'api/v1/metadata',
       {metric: args.metric, limit: args.limit},
     );
-    return result({
-      datasourceUid: args.datasource_uid,
-      metadata: data.data ?? data,
-      documentation,
-    });
+    return result({metadata: data.data ?? data});
   }));
 }

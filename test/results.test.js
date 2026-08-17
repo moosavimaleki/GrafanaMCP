@@ -27,21 +27,29 @@ test('metric summaries preserve every numeric series and its range', () => {
     },
   };
 
-  const summary = summarizeQueryResult(response).A;
-  assert.equal(summary.seriesCount, 2);
-  assert.equal(summary.numericPointCount, 5);
+  const summary = summarizeQueryResult(response, 100, {includeStats: true}).A;
+  assert.equal(summary.series.length, 2);
   assert.deepEqual(summary.series[0], {
     name: 'Value',
     labels: {instance: 'one'},
-    pointCount: 3,
-    first: {value: 1, time: 1000},
-    latest: {value: 3, time: 3000},
+    points: 3,
+    first: 1,
+    firstTime: 1000,
+    latest: 3,
+    latestTime: 3000,
     min: 1,
     max: 3,
-    average: 2,
+    avg: 2,
   });
-  assert.equal(summary.series[1].latest.value, 30);
-  assert.equal(summary.series[1].average, 20);
+  assert.equal(summary.series[1].latest, 30);
+  assert.equal(summary.series[1].avg, 20);
+  assert.equal(summarizeQueryResult(response).A.time, 3000);
+  assert.deepEqual(summarizeQueryResult(response).A.series[0], {
+    name: 'Value',
+    labels: {instance: 'one'},
+    value: 3,
+    points: 3,
+  });
 });
 
 test('metric summaries report series truncation without losing total counts', () => {
@@ -59,7 +67,46 @@ test('metric summaries report series truncation without losing total counts', ()
     },
   };
   const summary = summarizeQueryResult(response, 1).A;
-  assert.equal(summary.seriesCount, 2);
-  assert.equal(summary.returnedSeriesCount, 1);
-  assert.equal(summary.seriesTruncated, true);
+  assert.equal(summary.totalSeries, 2);
+  assert.equal(summary.returnedSeries, 1);
+  assert.equal(summary.truncated, true);
+});
+
+test('instant metric summaries omit redundant one-point statistics', () => {
+  const response = {
+    results: {A: {frames: [{
+      schema: {fields: [
+        {name: 'Time', type: 'time'},
+        {name: 'Value', type: 'number', labels: {pool: 'primary'}},
+      ]},
+      data: {values: [[1234], [10.5]]},
+    }] }},
+  };
+
+  assert.deepEqual(summarizeQueryResult(response).A, {
+    time: 1234,
+    series: [{name: 'Value', labels: {pool: 'primary'}, value: 10.5}],
+  });
+  assert.equal(summarizeQueryResult(response, 100, {includeStats: true})
+    .A.series[0].min, 10.5);
+});
+
+test('metric summaries omit display names that only repeat labels', () => {
+  const response = {results: {A: {frames: [{
+    schema: {fields: [
+      {name: 'Time', type: 'time'},
+      {
+        name: 'Value',
+        type: 'number',
+        labels: {pool: 'primary'},
+        config: {displayNameFromDS: '{pool="primary"}'},
+      },
+    ]},
+    data: {values: [[1234], [10.5]]},
+  }]}}};
+
+  assert.deepEqual(summarizeQueryResult(response).A, {
+    time: 1234,
+    series: [{labels: {pool: 'primary'}, value: 10.5}],
+  });
 });

@@ -7,12 +7,10 @@ import {
   baseInput,
   grafanaClient,
   handle,
-  METRICSQL_DOC_URL,
   result,
 } from './common.js';
 
 const readOnly = {readOnlyHint: true, openWorldHint: false};
-const documentation = {metricsql: METRICSQL_DOC_URL};
 const queryInput = baseInput.extend({
   datasource_uid: z.string().min(1),
   expr: z.string().min(1),
@@ -21,6 +19,9 @@ const queryInput = baseInput.extend({
   instant: z.boolean().default(false),
   legend_format: z.string().default(''),
   max_data_points: z.coerce.number().int().min(1).max(5000).default(300),
+  max_series: z.coerce.number().int().min(1).max(1000).default(100),
+  detail: z.enum(['compact', 'stats']).default('compact')
+    .describe('Use stats only when first/min/max/average values are needed.'),
   interval_ms: z.coerce.number().int().min(1).optional(),
 });
 
@@ -33,33 +34,24 @@ async function execute(args, item) {
     intervalMs: args.interval_ms,
     queries: [item],
   });
-  const response = await runQuery(grafanaClient(args), payload);
-  return {payload, response};
+  return runQuery(grafanaClient(args), payload);
 }
 
-function metricQueryResult(args, payload, response) {
-  return result({
-    request: {
-      datasourceUid: args.datasource_uid,
-      expr: args.expr,
-      from: payload.from,
-      to: payload.to,
-      instant: args.instant,
-    },
-    results: summarizeQueryResult(response),
-    documentation,
-  });
+function metricQueryResult(args, response) {
+  return result(summarizeQueryResult(response, args.max_series, {
+    includeStats: args.detail === 'stats',
+  }).A ?? {});
 }
 
 async function queryMetricDatasource(args) {
-  const {payload, response} = await execute(args, {
+  const response = await execute(args, {
     refId: 'A',
     expr: args.expr,
     instant: args.instant,
     range: !args.instant,
     legendFormat: args.legend_format,
   });
-  return metricQueryResult(args, payload, response);
+  return metricQueryResult(args, response);
 }
 
 export function registerMetricQueryTools(server) {
@@ -88,17 +80,8 @@ export function registerMetricQueryTools(server) {
       `histogram_quantile(${args.percentile}, sum by (le) (rate(`,
       `${args.metric}_bucket${labels}[${args.rate_window}])))`,
     ].join('');
-    const {payload, response} = await execute(args, {refId: 'A', expr});
-    return result({
-      request: {
-        datasourceUid: args.datasource_uid,
-        expr,
-        from: payload.from,
-        to: payload.to,
-      },
-      results: summarizeQueryResult(response),
-      documentation,
-    });
+    const response = await execute(args, {refId: 'A', expr});
+    return result(summarizeQueryResult(response).A ?? {});
   }));
 
   server.registerTool('query_prometheus', {

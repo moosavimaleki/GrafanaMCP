@@ -5,12 +5,10 @@ import {
   baseInput,
   grafanaClient,
   handle,
-  METRICSQL_DOC_URL,
   result,
 } from './common.js';
 
 const readOnly = {readOnlyHint: true, openWorldHint: false};
-const documentation = {metricsql: METRICSQL_DOC_URL};
 const discoveryInput = baseInput.extend({
   datasource_uid: z.string().min(1),
   match: z.array(z.string().min(1)).optional(),
@@ -49,7 +47,7 @@ export function registerVictoriaMetricsTools(server) {
     annotations: readOnly,
   }, handle(async args => {
     const data = await discover(args, 'api/v1/label/namespace/values');
-    return result({datasourceUid: args.datasource_uid, namespaces: values(data), documentation});
+    return result({namespaces: values(data)});
   }));
 
   server.registerTool('list_victoriametrics_metric_names', {
@@ -59,7 +57,7 @@ export function registerVictoriaMetricsTools(server) {
     annotations: readOnly,
   }, handle(async args => {
     const data = await discover(args, 'api/v1/label/__name__/values');
-    return result({datasourceUid: args.datasource_uid, metricNames: values(data), documentation});
+    return result({metricNames: values(data)});
   }));
 
   server.registerTool('list_victoriametrics_label_names', {
@@ -69,7 +67,7 @@ export function registerVictoriaMetricsTools(server) {
     annotations: readOnly,
   }, handle(async args => {
     const data = await discover(args, 'api/v1/labels');
-    return result({datasourceUid: args.datasource_uid, labels: values(data), documentation});
+    return result({labels: values(data)});
   }));
 
   server.registerTool('list_victoriametrics_label_values', {
@@ -84,11 +82,6 @@ export function registerVictoriaMetricsTools(server) {
       args,
       `api/v1/label/${encodeURIComponent(args.label)}/values`,
     );
-    return result({
-      datasourceUid: args.datasource_uid,
-      label: args.label,
-      values: values(data),
-      documentation,
-    });
+    return result({values: values(data)});
   }));
 }

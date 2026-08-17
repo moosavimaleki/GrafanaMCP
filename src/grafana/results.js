@@ -9,16 +9,49 @@ function seriesSummary(field, series, timestamps) {
   return {
     name: field.config?.displayNameFromDS || field.name,
     labels: field.labels ?? {},
-    pointCount: values.length,
-    first: samples[0],
-    latest: samples.at(-1),
+    points: values.length,
+    first: samples[0].value,
+    firstTime: samples[0].time ?? null,
+    latest: samples.at(-1).value,
+    latestTime: samples.at(-1).time ?? null,
     min: Math.min(...values),
     max: Math.max(...values),
-    average: total / values.length,
+    avg: total / values.length,
   };
 }
 
-export function summarizeQueryResult(response, maxSeries = 100) {
+function quotedLabel(value) {
+  return String(value).replaceAll('\\', '\\\\').replaceAll('\n', '\\n').replaceAll('"', '\\"');
+}
+
+function redundantLabelName(item) {
+  const labels = Object.entries(item.labels);
+  if (labels.length === 0) return false;
+  const fields = labels.map(([name, value]) => `${name}="${quotedLabel(value)}"`);
+  return item.name === `{${fields.join(',')}}` || item.name === `{${fields.join(', ')}}`;
+}
+
+function compactSeries(series, includeStats) {
+  const omitName = series.length > 0 && series.every(redundantLabelName);
+  if (includeStats) {
+    return {series: omitName ? series.map(({name, ...item}) => item) : series};
+  }
+  const instant = series.every(item => item.points === 1);
+  const sharedTime = series.length > 0
+    && series.every(item => item.latestTime === series[0].latestTime);
+  return {
+    ...(sharedTime ? {time: series[0].latestTime} : {}),
+    series: series.map(item => ({
+      ...(omitName ? {} : {name: item.name}),
+      labels: item.labels,
+      value: item.latest,
+      ...(sharedTime ? {} : {time: item.latestTime}),
+      ...(instant ? {} : {points: item.points}),
+    })),
+  };
+}
+
+export function summarizeQueryResult(response, maxSeries = 100, {includeStats = false} = {}) {
   const results = {};
   for (const [refId, result] of Object.entries(response?.results ?? {})) {
     const frames = result.frames ?? [];
@@ -35,30 +68,25 @@ export function summarizeQueryResult(response, maxSeries = 100) {
         if (field.type !== 'number') return;
         const summary = seriesSummary(field, values[index] ?? [], timestamps);
         if (!summary) return;
-        points += summary.pointCount;
+        points += summary.points;
         seriesCount += 1;
         if (series.length < maxSeries) series.push(summary);
       });
     }
 
-    const firstSeries = series[0];
-    results[refId] = {
-      status: result.status ?? 200,
-      error: result.error ?? undefined,
-      frameCount: frames.length,
-      numericPointCount: points,
-      seriesCount,
-      returnedSeriesCount: series.length,
-      seriesTruncated: seriesCount > series.length,
-      latest: firstSeries
-        ? {
-          ...firstSeries.latest,
-          name: firstSeries.name,
-          labels: firstSeries.labels,
-        }
-        : undefined,
-      series,
-    };
+    const summary = compactSeries(series, includeStats);
+    if (result.status && result.status !== 200) summary.status = result.status;
+    if (result.error) summary.error = result.error;
+    if (seriesCount > series.length) {
+      summary.totalSeries = seriesCount;
+      summary.returnedSeries = series.length;
+      summary.truncated = true;
+    }
+    if (series.length === 0 && frames.length > 0) {
+      summary.frames = frames.length;
+      summary.numericPoints = points;
+    }
+    results[refId] = summary;
   }
   return results;
 }

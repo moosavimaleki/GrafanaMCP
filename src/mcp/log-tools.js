@@ -7,12 +7,10 @@ import {
   baseInput,
   grafanaClient,
   handle,
-  LOGSQL_DOC_URL,
   result,
 } from './common.js';
 
 const readOnly = {readOnlyHint: true, openWorldHint: false};
-const documentation = {logsql: LOGSQL_DOC_URL};
 
 export function registerLogTools(server) {
   server.registerTool('query_victorialogs', {
@@ -46,17 +44,8 @@ export function registerLogTools(server) {
     });
     const response = await runQuery(grafanaClient(args), payload);
     return result({
-      request: {
-        datasourceUid: args.datasource_uid,
-        expr: args.expr,
-        queryType: args.query_type,
-        from: payload.from,
-        to: payload.to,
-        maxLines: args.max_lines,
-      },
       results: summarizeQueryResult(response),
       rows: rowsFromFrames(response, args.max_lines),
-      documentation,
     });
   }));
 
@@ -83,11 +72,7 @@ export function registerLogTools(server) {
         limit: args.limit,
       },
     );
-    return result({
-      datasourceUid: args.datasource_uid,
-      fields: data.values ?? data.data ?? data,
-      documentation,
-    });
+    return result({fields: data.values ?? data.data ?? data});
   }));
 
   server.registerTool('list_victorialogs_field_values', {
@@ -115,11 +100,6 @@ export function registerLogTools(server) {
         limit: args.limit,
       },
     );
-    return result({
-      datasourceUid: args.datasource_uid,
-      field: args.field,
-      values: data.values ?? data.data ?? data,
-      documentation,
-    });
+    return result({values: data.values ?? data.data ?? data});
   }));
 }

@@ -1,4 +1,5 @@
 import * as z from 'zod/v4';
+import {encode} from '@toon-format/toon';
 
 import {GrafanaClient} from '../grafana/client.js';
 export {GrafanaError} from '../grafana/error.js';
@@ -19,10 +20,15 @@ export function grafanaClient(args) {
   return new GrafanaClient({baseUrl: args.base_url, orgId: args.org_id});
 }
 
+export function compactText(value) {
+  const json = JSON.stringify(value);
+  if (json === undefined) return 'null';
+  return encode(JSON.parse(json)) || '{}';
+}
+
 export function result(value) {
   return {
-    content: [{type: 'text', text: JSON.stringify(value, null, 2)}],
-    structuredContent: value,
+    content: [{type: 'text', text: compactText(value)}],
   };
 }
 

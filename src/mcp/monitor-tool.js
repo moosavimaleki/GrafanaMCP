@@ -8,7 +8,6 @@ import {
   baseInput,
   grafanaClient,
   handle,
-  LOGSQL_DOC_URL,
   result,
 } from './common.js';
 
@@ -77,7 +76,6 @@ export function registerMonitorTool(server) {
     );
     if (logRefs.size > 0) {
       output.logs = rowsFromFrames(response, args.max_log_rows, logRefs);
-      output.documentation = {logsql: LOGSQL_DOC_URL};
     }
     return result(output);
   }));
