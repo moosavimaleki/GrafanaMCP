@@ -3,6 +3,7 @@ import {ProxyAgent} from 'undici';
 import {GrafanaError} from './error.js';
 
 const dispatcherPromises = new Map();
+const autoRoutes = new Map();
 
 export function proxySettings(env = process.env) {
   const mode = (env.GRAFANA_PROXY_MODE || 'direct').toLowerCase();
@@ -41,4 +42,12 @@ export function configuredProxyDispatcher(settings) {
     dispatcherPromises.set(key, proxyDispatcher(settings));
   }
   return dispatcherPromises.get(key);
+}
+
+export function configuredAutoRoute(baseUrl, settings) {
+  const key = `${baseUrl}|${settings.uri}`;
+  if (!autoRoutes.has(key)) {
+    autoRoutes.set(key, {route: undefined, lastDirectProbeAt: 0, pending: undefined});
+  }
+  return autoRoutes.get(key);
 }

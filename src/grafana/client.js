@@ -1,12 +1,15 @@
 import {mergeSessionCookie, sessionExpirySeconds} from './cookies.js';
 import {GrafanaError} from './error.js';
-import {configuredProxyDispatcher, proxySettings} from './proxy.js';
+import {configuredAutoRoute, configuredProxyDispatcher, proxySettings} from './proxy.js';
 import {failureDetail, responsePayload} from './response.js';
 
 const sessions = new Map();
 const pendingLogins = new Map();
 const pendingRotations = new Map();
 const rotateWindowSeconds = 5 * 60;
+const directProbeTimeoutMs = 3000;
+const proxyProbeTimeoutMs = 12000;
+const directRecheckMs = 5 * 60 * 1000;
 
 function normalizeBaseUrl(baseUrl) {
   const value = (baseUrl || process.env.GRAFANA_BASE_URL || '').replace(/\/$/, '');
@@ -19,29 +22,79 @@ function normalizeBaseUrl(baseUrl) {
 }
 
 export class GrafanaClient {
-  constructor({baseUrl, orgId}) {
+  constructor({baseUrl, orgId, proxyConfig} = {}) {
     this.baseUrl = normalizeBaseUrl(baseUrl);
     this.orgId = String(orgId || process.env.GRAFANA_ORG_ID || '1');
     this.sessionKey = `${this.baseUrl}|${this.orgId}`;
-    this.proxySettings = proxySettings();
+    this.proxySettings = proxyConfig || proxySettings();
     this.proxyDispatcher = configuredProxyDispatcher(this.proxySettings);
-    this.autoRoute = undefined;
+    this.autoRouteState = this.proxySettings.mode === 'auto'
+      ? configuredAutoRoute(this.baseUrl, this.proxySettings)
+      : undefined;
   }
 
-  async fetch(url, options) {
-    if (this.proxySettings.mode === 'direct') return fetch(url, options);
-    const dispatcher = await this.proxyDispatcher;
-    if (this.proxySettings.mode === 'always' || this.autoRoute === 'proxy') {
-      return fetch(url, {...options, dispatcher});
-    }
+  get autoRoute() {
+    return this.autoRouteState?.route;
+  }
 
+  async fetchVia(route, url, options) {
+    if (route === 'direct') return fetch(url, options);
+    const dispatcher = await this.proxyDispatcher;
+    return fetch(url, {...options, dispatcher});
+  }
+
+  async probe(route) {
+    const response = await this.fetchVia(route, new URL('/api/health', this.baseUrl), {
+      signal: AbortSignal.timeout(route === 'direct' ? directProbeTimeoutMs : proxyProbeTimeoutMs),
+    });
+    await response.body?.cancel();
+  }
+
+  async selectAutoRoute() {
+    const state = this.autoRouteState;
+    if (state.route === 'direct') return 'direct';
+    if (state.route === 'proxy' && Date.now() - state.lastDirectProbeAt < directRecheckMs) {
+      return 'proxy';
+    }
+    if (state.pending) return state.pending;
+
+    state.pending = (async () => {
+      state.lastDirectProbeAt = Date.now();
+      try {
+        await this.probe('direct');
+        state.route = 'direct';
+      } catch {
+        if (state.route !== 'proxy') {
+          await this.probe('proxy');
+          state.route = 'proxy';
+        }
+      }
+      return state.route;
+    })().finally(() => { state.pending = undefined; });
+    return state.pending;
+  }
+
+  async fetch(url, options = {}) {
+    if (this.proxySettings.mode === 'direct') return this.fetchVia('direct', url, options);
+    if (this.proxySettings.mode === 'always') return this.fetchVia('proxy', url, options);
+
+    const route = await this.selectAutoRoute();
     try {
-      const response = await fetch(url, options);
-      this.autoRoute = 'direct';
-      return response;
-    } catch {
-      this.autoRoute = 'proxy';
-      return fetch(url, {...options, dispatcher});
+      return await this.fetchVia(route, url, options);
+    } catch (error) {
+      if (options.signal?.aborted || !(error instanceof TypeError && error.message === 'fetch failed')) {
+        throw error;
+      }
+      const alternate = route === 'direct' ? 'proxy' : 'direct';
+      try {
+        const response = await this.fetchVia(alternate, url, options);
+        this.autoRouteState.route = alternate;
+        this.autoRouteState.lastDirectProbeAt = Date.now();
+        return response;
+      } catch (alternateError) {
+        if (this.autoRouteState.route === route) this.autoRouteState.route = undefined;
+        throw alternateError;
+      }
     }
   }
 
