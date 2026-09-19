@@ -64,6 +64,10 @@ export GRAFANA_BASE_URL='https://grafana.example.com'
 export GRAFANA_USERNAME='your-username'
 export GRAFANA_PASSWORD='your-password'
 export GRAFANA_ORG_ID='1' # اختیاری؛ مقدار پیش‌فرض 1 است
+# اختیاری؛ پیش‌فرض direct است. برای خانه از always استفاده کنید.
+export GRAFANA_PROXY_MODE='always'
+# در حالت always یا auto اجباری است؛ هیچ proxy پیش‌فرضی وجود ندارد.
+export GRAFANA_PROXY_URL='http://127.0.0.1:3128'
 npm start
 ```
 
@@ -82,7 +86,20 @@ GRAFANA_BASE_URL = "https://grafana.example.com"
 GRAFANA_ORG_ID = "1"
 GRAFANA_USERNAME = "your-username"
 GRAFANA_PASSWORD = "your-password"
+GRAFANA_PROXY_MODE = "always"
+GRAFANA_PROXY_URL = "http://127.0.0.1:3128"
 ```
+
+## مسیردهی پروکسی خانه / شرکت
+
+پروژهٔ همراه `vpn-proxy` یک پراکسی **HTTP/HTTPS از نوع Squid** است، نه SOCKS.
+تنظیم‌ها فقط از environment خوانده می‌شوند و proxy پیش‌فرضی وجود ندارد. در
+خانه `GRAFANA_PROXY_MODE=always` و
+`GRAFANA_PROXY_URL=http://127.0.0.1:3128` را صریح بگذارید؛ در شرکت mode را
+`direct` بگذارید یا هر دو متغیر proxy را حذف کنید. در حالت `auto`، URL پراکسی
+همچنان اجباری است: ابتدا اتصال مستقیم امتحان می‌شود و فقط با خطای شبکه، همان
+درخواست از پراکسی retry می‌شود. سپس مسیر موفق برای ادامهٔ همان اجرا حفظ خواهد
+شد.
 
 پس از اجرای دوبارهٔ Codex، با `codex mcp list` فعال‌بودن سرور را بررسی کنید.
 نمونهٔ بدون اطلاعات حساس در [mcp.json.example](mcp.json.example) است.

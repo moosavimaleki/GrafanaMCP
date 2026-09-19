@@ -7,7 +7,9 @@
         "GRAFANA_BASE_URL": "<grafana-base-url>",
         "GRAFANA_ORG_ID": "<grafana-org-id>",
         "GRAFANA_USERNAME": "<grafana-username>",
-        "GRAFANA_PASSWORD": "<grafana-password>"
+        "GRAFANA_PASSWORD": "<grafana-password>",
+        "GRAFANA_PROXY_MODE": "always",
+        "GRAFANA_PROXY_URL": "http://127.0.0.1:3128"
       }
     }
   }

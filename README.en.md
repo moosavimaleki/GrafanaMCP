@@ -55,6 +55,10 @@ export GRAFANA_BASE_URL='https://grafana.example.com'
 export GRAFANA_USERNAME='your-username'
 export GRAFANA_PASSWORD='your-password'
 export GRAFANA_ORG_ID='1' # optional; defaults to 1
+# optional; direct is the default. Use always at home.
+export GRAFANA_PROXY_MODE='always'
+# Required for always or auto; there is no default proxy.
+export GRAFANA_PROXY_URL='http://127.0.0.1:3128'
 npm start
 ```
 
@@ -73,7 +77,19 @@ GRAFANA_BASE_URL = "https://grafana.example.com"
 GRAFANA_ORG_ID = "1"
 GRAFANA_USERNAME = "your-username"
 GRAFANA_PASSWORD = "your-password"
+GRAFANA_PROXY_MODE = "always"
+GRAFANA_PROXY_URL = "http://127.0.0.1:3128"
 ```
+
+## Home / office proxy routing
+
+The companion `vpn-proxy` project exposes an **HTTP/HTTPS Squid proxy**, not a
+SOCKS proxy. Configuration is read only from the environment and there is no
+default proxy. At home, explicitly set `GRAFANA_PROXY_MODE=always` and
+`GRAFANA_PROXY_URL=http://127.0.0.1:3128`; at the office use `direct` or omit
+both proxy variables. In `auto` mode the proxy URL is still required: Grafana
+MCP tries a direct connection first, retries only network failures through the
+proxy, then keeps the successful route for the rest of that process.
 
 Restart Codex, then check the connection with `codex mcp list`. See the safe,
 placeholder-only [mcp.json.example](mcp.json.example) as a configuration

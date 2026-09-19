@@ -1,5 +1,6 @@
 import {mergeSessionCookie, sessionExpirySeconds} from './cookies.js';
 import {GrafanaError} from './error.js';
+import {configuredProxyDispatcher, proxySettings} from './proxy.js';
 import {failureDetail, responsePayload} from './response.js';
 
 const sessions = new Map();
@@ -22,6 +23,26 @@ export class GrafanaClient {
     this.baseUrl = normalizeBaseUrl(baseUrl);
     this.orgId = String(orgId || process.env.GRAFANA_ORG_ID || '1');
     this.sessionKey = `${this.baseUrl}|${this.orgId}`;
+    this.proxySettings = proxySettings();
+    this.proxyDispatcher = configuredProxyDispatcher(this.proxySettings);
+    this.autoRoute = undefined;
+  }
+
+  async fetch(url, options) {
+    if (this.proxySettings.mode === 'direct') return fetch(url, options);
+    const dispatcher = await this.proxyDispatcher;
+    if (this.proxySettings.mode === 'always' || this.autoRoute === 'proxy') {
+      return fetch(url, {...options, dispatcher});
+    }
+
+    try {
+      const response = await fetch(url, options);
+      this.autoRoute = 'direct';
+      return response;
+    } catch {
+      this.autoRoute = 'proxy';
+      return fetch(url, {...options, dispatcher});
+    }
   }
 
   updateSession(headers, replace = false) {
@@ -38,7 +59,7 @@ export class GrafanaClient {
         'Set GRAFANA_USERNAME and GRAFANA_PASSWORD; Chrome DevTools is not used.',
       );
     }
-    const response = await fetch(new URL('/login', this.baseUrl), {
+    const response = await this.fetch(new URL('/login', this.baseUrl), {
       method: 'POST',
       headers: {
         Accept: 'application/json',
@@ -98,10 +119,10 @@ export class GrafanaClient {
     else if (this.sessionExpiresSoon()) await this.rotate();
   }
 
-  requestOnce(pathname, options = {}) {
+  async requestOnce(pathname, options = {}) {
     const {method = 'GET', body, rawBody, headers = {}} = options;
     const cookie = sessions.get(this.sessionKey);
-    return fetch(new URL(pathname, this.baseUrl), {
+    return this.fetch(new URL(pathname, this.baseUrl), {
       method,
       headers: {
         Accept: 'application/json',
